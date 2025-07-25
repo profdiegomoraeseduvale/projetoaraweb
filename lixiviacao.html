@@ -273,17 +273,7 @@
     </div>
   </div>
 
-   <script>
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
-      } else {
-        window.location.href = "index.html";
-      }
-    });
-
-   
-  </script>
+  
 
   <script>
     let grafico;
@@ -475,6 +465,14 @@
       doc.save("relatorio_lixiviacao.pdf");
     });
   }
+
+   firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
+      } else {
+        window.location.href = "index.html";
+      }
+    });
   </script>
  
 </body>
