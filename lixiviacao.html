@@ -273,6 +273,18 @@
     </div>
   </div>
 
+   <script>
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+
+   
+  </script>
+
   <script>
     let grafico;
     let valoresAF = [];
@@ -464,20 +476,6 @@
     });
   }
   </script>
-  <script>
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
-      } else {
-        window.location.href = "index.html";
-      }
-    });
-
-    function logout() {
-      firebase.auth().signOut().then(() => {
-        window.location.href = "index.html";
-      });
-    }
-  </script>
+ 
 </body>
 </html>
