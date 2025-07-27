@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cálculo de Escoamento Superficial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="firebase-config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #004d40;
+            margin-bottom: 30px;
+        }
+
+        .custom-file-upload {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            display: inline-block;
+            font-size: 14px;
+        }
+
+        .custom-file-upload:hover {
+            background-color: #004d40;
+        }
+
+        .campo-invalido {
+            border: 2px solid #e53935 !important;
+            background-color: #fff3f3;
+        }
+
+        fieldset {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+
+        .input-solo {
+            width: 100%;
+            max-width: 120px;
+        }
+
+        legend {
+            font-weight: bold;
+            color: #00796b;
+        }
+
+        #graficoAF {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .row {
+                flex-direction: column;
+                flex-wrap: wrap;
+            }
+
+            .input-solo {
+                width: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand">Meu App - Módulo de Escoamento Superficial</span>
+            <div class="ms-auto d-flex align-items-center">
+                <span class="navbar-text me-3" id="boasVindas">Olá, usuário</span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+
+
+    <div class="container container d-flex mt-5 justify-content-center align-items-center">
+        <h1 class="text-center"></h1>
+        <div class="w-100" style="max-width: 1200px;">
+            <div class="row">
+                <div class="col-lg-7 mb-4 w-100">
+                    <div class="bg-white p-4 shadow rounded">
+
+                        <!-- Nav tabs -->
+                        <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="agro-tab" data-bs-toggle="tab"
+                                    data-bs-target="#agro" type="button" role="tab">Agrotóxico</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="local-tab" data-bs-toggle="tab" data-bs-target="#local"
+                                    type="button" role="tab">Localidade</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="resultado-tab" data-bs-toggle="tab"
+                                    data-bs-target="#resultado" type="button" role="tab">Resultado</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="btn btn-success" onclick="calcular()">Calcular Concentração</button>
+                            </li>
+
+
+                        </ul>
+
+                        <!-- Tab panes -->
+                        <div class="tab-content" id="myTabContent">
+
+                            <div class="tab-pane fade show active" id="agro" role="tabpanel">
+                                <fieldset>
+                                    <div class="row g-3 align-items-center justify-content-center">
+                                        <div class="col-12">
+                                            <label>Ingrediente Ativo:</label>
+                                            <input type="text" id="ingrediente"
+                                                class="form-control input-agro w-100 mx-auto">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label>Dose (g/ha):</label>
+                                            <input type="number" id="dose" class="form-control" value="240">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label>Meia-vida (dias):</label>
+                                            <input type="number" id="t_half" class="form-control" value="360">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label>Koc (ml/g):</label>
+                                            <input type="number" id="koc" class="form-control" value="80">
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <label>Param.Organismos Aquáticos (µg/L):</label>
+                                            <input type="number" id="org" class="form-control">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label>Param. Plantas Aquáticas (µg/L):</label>
+                                            <input type="number" id="plt" class="form-control">
+                                        </div>
+
+                                    </div>
+                                </fieldset>
+                            </div>
+
+                            <div class="tab-pane fade" id="local" role="tabpanel">
+                                <fieldset>
+                                    <div class="row g-3">
+                                        <!-- Primeira linha -->
+                                         <div class="col-12">
+                                            <label>Descrição:</label>
+                                            <input type="text" id="descricaolocal"
+                                                class="form-control input-agro w-100 mx-auto">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label for="declividade">Declividade (%):</label>
+                                            <input type="number" id="declividade" step="0.1" class="form-control"
+                                                value="5">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label for="interceptacao">Interceptação (%):</label>
+                                            <input type="number" id="interceptacao" step="0.1" class="form-control"
+                                                value="20">
+                                        </div>
+                                        <div class="col-12 col-md-4">
+                                            <label for="largura_faixa">Largura da faixa (m):</label>
+                                            <input type="number" id="largura_faixa" step="0.1" class="form-control"
+                                                value="5">
+                                        </div>
+
+                                        <!-- Segunda linha -->
+                                        <div class="col-12 col-md-4">
+                                            <label for="textura">Textura do Solo:</label>
+                                            <select id="textura" class="form-select">
+                                                <option value="" selected disabled>Selecione</option>
+                                                <option value="Arenosa">Arenosa</option>
+                                                <option value="Média">Média</option>
+                                                <option value="Argilosa">Argilosa</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <label for="carbono_organico">Carbono Orgânico (%):</label>
+                                            <input type="number" id="carbono_organico" step="0.01" class="form-control"
+                                                value="1.2">
+                                        </div>
+
+                                        <div class="col-12 col-md-4">
+                                            <label for="coef_escoamento">Coeficiente de Escoamento <sup>*</sup>:</label>
+                                            <input type="number" id="coef_escoamento" step="0.01" min="0.3" max="0.8"
+                                                class="form-control" readonly>
+                                        </div>
+                                    </div>
+
+                                    <p style="font-size: 12px; margin-top: 8px;">
+                                        (*) Fonte: Cruciani (1989) e Pruski et al. (2004).<br>
+                                    </p>
+                                </fieldset>
+
+                            </div>
+                            <div class="tab-pane fade" id="resultado" role="tabpanel">
+                                <div id="resultado">
+                                    <canvas id="graficoAF"></canvas>
+                                    <!-- O conteúdo do gráfico + tabelas será inserido dinamicamente por JS -->
+                                </div>
+
+
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+
+                            <button class="btn btn-primary" onclick="salvarJSON()">Salvar Dados</button>
+                            <button class="btn btn-danger"
+                                onclick="document.getElementById('uploadJSON').click()">Carregar Dados</button>
+                            <input type="file" id="uploadJSON" accept=".json" style="display: none;"
+                                onchange="carregarJSON(event)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        const tabelaEscoamento = {
+            "0-5": { "Arenosa": 0.30, "Média": 0.50, "Argilosa": 0.60 },
+            "5-10": { "Arenosa": 0.40, "Média": 0.60, "Argilosa": 0.70 },
+            "10-30": { "Arenosa": 0.50, "Média": 0.70, "Argilosa": 0.80 },
+        };
+
+        function atualizarCoeficienteEscoamento() {
+            const declividade = parseFloat(document.getElementById("declividade").value);
+            const textura = document.getElementById("textura").value;
+            const coefInput = document.getElementById("coef_escoamento");
+
+            if (!textura || isNaN(declividade)) {
+                coefInput.value = "";
+                return;
+            }
+
+            let faixaDeclividade = null;
+            if (declividade >= 0 && declividade <= 5) {
+                faixaDeclividade = "0-5";
+            } else if (declividade > 5 && declividade <= 10) {
+                faixaDeclividade = "5-10";
+            } else if (declividade > 10 && declividade <= 30) {
+                faixaDeclividade = "10-30";
+            }
+
+            if (faixaDeclividade && tabelaEscoamento[faixaDeclividade][textura]) {
+                coefInput.value = tabelaEscoamento[faixaDeclividade][textura].toFixed(2);
+            } else {
+                coefInput.value = "";
+            }
+        }
+
+        document.getElementById("declividade").addEventListener("input", atualizarCoeficienteEscoamento);
+        document.getElementById("textura").addEventListener("change", atualizarCoeficienteEscoamento);
+
+        let grafico;
+
+        let resultadoM10 = null;
+        let resultadoCl = null;
+        let resultadosORG = [];
+        let resultadosPLT = [];
+        let pltVal = null;
+        let orgVal = null;
+
+        function calcular() {
+
+            const camposObrigatorios = [
+                // Agrotóxico
+                'dose', 't_half', 'koc', 'org', 'plt',
+
+                // Características da área
+                'declividade', 'interceptacao', 'largura_faixa',
+                'textura', 'carbono_organico'
+
+                // Demais campos usados no cálculo
+
+            ];
+
+            let camposVazios = [];
+
+            // Limpa estilos anteriores
+            camposObrigatorios.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('campo-invalido');
+                }
+            });
+
+            // Verifica campos
+            camposObrigatorios.forEach(id => {
+                const el = document.getElementById(id);
+                const valor = el?.value;
+
+                const invalido = el?.tagName === 'SELECT'
+                    ? (valor === '' || valor === null)
+                    : (valor === '' || isNaN(parseFloat(valor)));
+
+                if (invalido) {
+                    camposVazios.push(id);
+                    el.classList.add('campo-invalido');
+                }
+            });
+
+            if (camposVazios.length > 0) {
+                Toastify({
+                    text: "⚠️ Preencha todos os campos obrigatórios.",
+                    duration: 4000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#d32f2f",
+                    stopOnFocus: true
+                }).showToast();
+                return;
+
+            }
+
+            // Pegando dados do usuário
+            const dose = parseFloat(document.getElementById('dose').value) * 1e6; // g/ha -> µg/ha
+            const t_half = parseFloat(document.getElementById('t_half').value);
+            const koc = parseFloat(document.getElementById('koc').value);
+            const c = parseFloat(document.getElementById('coef_escoamento').value);
+            const co = parseFloat(document.getElementById('carbono_organico').value);
+
+            const declividade = parseFloat(document.getElementById('declividade').value);
+            const interceptacao = parseFloat(document.getElementById('interceptacao').value);
+            const largura_faixa = parseFloat(document.getElementById('largura_faixa').value);
+
+            const org = parseFloat(document.getElementById('org').value);
+            const plt = parseFloat(document.getElementById('plt').value);
+
+            orgVal = org;
+            pltVal = plt;
+
+            const kd = (koc * co) / 100;
+            // Calculando f1 (função da declividade)      
+            let f1;
+            if (declividade >= 20) {
+                f1 = 1;
+            } else {
+                f1 = 0.02153 * declividade + 0.001423 * (declividade ** 2);
+            }
+
+            // f2 = 1 - interceptação/100
+            const f2 = 1 - (interceptacao / 100);
+
+            // f3 = 0,83 * largura da faixa vegetada
+            let f3 = Math.pow(0.83, largura_faixa)
+
+            // f = f1 * f2 * f3
+            const f = f1 * f2 * f3;
+
+            // Calcula massa transportada (M)
+            // M = dose * c * f * exp(-0,693 * 3 / t_half) * 1 / (1 + kd)
+            const expoente = Math.exp(-0.693 * 3 / t_half);
+            const M = dose * c * f * expoente / (1 + kd);
+
+            // Massa para 10 ha (M10)
+            const M10 = M * 10;
+
+            // Volume lago padrão = 2.10^7 L
+            const volume_lago = 2e7;
+
+            // Concentração no lago (Cl)
+            const Cl = M10 / volume_lago;
+
+            resultadoM10 = M10;
+            resultadoCl = Cl;
+
+            // 2. Tabela LOCs da EPA
+            const LOCS_ORG = [
+                { tipo: "Agudo elevado", loc: 0.5 },
+                { tipo: "Agudo uso restrito", loc: 0.1 },
+                { tipo: "Agudo espécies em risco de extinção", loc: 0.05 },
+                { tipo: "Crônico", loc: 1.0 }
+            ];
+
+            const LOCS_PLT = [
+                { tipo: "Agudo elevado", loc: 1.0 },
+                { tipo: "Espécies em risco de extinção", loc: 1.0 }
+            ];
+
+            // 3. Cálculo QR para organismos aquáticos
+
+            let QRorg = null;
+            if (!isNaN(org) && org > 0) {
+                QRorg = Cl / org;
+                resultadosORG = LOCS_ORG.map(item => ({
+                    efeito: item.tipo,
+                    loc: item.loc,
+                    QR: QRorg.toFixed(2),
+                    status: QRorg > item.loc ? "🔴" : "🟢"
+                }));
+            }
+
+            // 4. Cálculo QR para plantas aquáticas
+
+            let QRplt = null;
+            if (!isNaN(plt) && plt > 0) {
+                QRplt = Cl / plt;
+                resultadosPLT = LOCS_PLT.map(item => ({
+                    efeito: item.tipo,
+                    loc: item.loc,
+                    QR: QRplt.toFixed(2),
+                    status: QRplt > item.loc ? "🔴" : "🟢"
+                }));
+            }
+
+
+
+            // Montando resultado HTML
+            const resultadoDiv = document.getElementById('resultado');
+
+            let resultadoHTML = `
+                <h2 class="mt-4">Resultados</h2>
+                <div class="table-responsive">
+                <table class="table table-bordered table-sm text-center align-middle">
+                    <tbody>
+                    <tr>
+                        <th>Massa transportada (µg)</th>
+                        <td>${M10.toExponential(3)}</td>
+                    </tr>
+                    <tr>
+                        <th>Concentração Estimada (µg/L)</th>
+                        <td>${Cl.toFixed(2)}</td>
+                    </tr>
+                        
+                    
+                    </tbody>
+                </table>
+                </div>
+
+                <h5 class="mt-4">Risco Ecotoxicológico – Organismos Aquáticos (CE<sub>50</sub> = ${org.toFixed(2)} µg/L)</h5>
+                    <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Tipo de Efeito</th>
+                            <th>LOC</th>
+                            <th>QR</th>
+                            <th>Classificação</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        ${resultadosORG.map(r => `
+                            <tr>
+                            <td>${r.efeito}</td>
+                            <td>${r.loc}</td>
+                            <td>${r.QR}</td>
+                            <td>${r.status}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    </div>
+                
+                <h5 class="mt-4">Risco Ecotoxicológico – Plantas Aquáticas (CE<sub>50</sub> = ${plt.toFixed(2)} µg/L) </h5>
+                    <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Tipo de Efeito</th>
+                            <th>LOC</th>
+                            <th>QR</th>
+                            <th>Classificação</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        ${resultadosPLT.map(r => `
+                            <tr>
+                            <td>${r.efeito}</td>
+                            <td>${r.loc}</td>
+                            <td>${r.QR}</td>
+                            <td>${r.status}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    </div>
+                <button class="btn btn-primary mt-3" onclick="gerarPDF()">Gerar Relatório</button>
+            
+            `;
+
+            resultadoDiv.innerHTML = resultadoHTML;
+
+            // Gráfico comparando concentração e potabilidade
+            /* const orgVal = org || 0;
+             const pltVal = plt || 0;
+       
+             const ctx = document.getElementById('graficoAF').getContext('2d');
+             if (grafico) grafico.destroy();
+             grafico = new Chart(ctx, {
+               type: 'bar',
+               data: {
+                 labels: ['Concentração no lago', 'Organismos Aquáticos', 'Plantas Aquáticas'],
+                 datasets: [{
+                   label: 'µg/L',
+                   data: [Cl, orgVal, pltVal],
+                   backgroundColor: ['#00796b', '#c62828', '#8e24aa'],
+                 }]
+               },
+               options: {
+                 responsive: true,
+                 plugins: {
+                   legend: { display: false },
+                   tooltip: {
+                     callbacks: {
+                       label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} µg/L`
+                     }
+                   }
+                 },
+                 scales: {
+                   y: {
+                     beginAtZero: true,
+                     title: {
+                       display: true,
+                       text: 'Concentração (µg/L)'
+                     }
+                   }
+                 }
+               }
+             }); */
+
+            // Direcionar para a aba de Resultados após o cálculo (usando Bootstrap 5)
+            const abaResultados = new bootstrap.Tab(document.querySelector('#resultado-tab'));
+            abaResultados.show();
+        }
+
+        function salvarJSON() {
+            const dados = {
+                ingrediente: document.getElementById('ingrediente').value,
+                dose: document.getElementById('dose').value,
+                t_half: document.getElementById('t_half').value,
+                koc: document.getElementById('koc').value,
+                textura: document.getElementById('textura').value,
+                org: document.getElementById('org').value,
+                plt: document.getElementById('plt').value,
+                carbono_organico: document.getElementById('carbono_organico').value,
+                coef_escoamento: document.getElementById('coef_escoamento').value,
+                declividade: document.getElementById('declividade').value,
+                interceptacao: document.getElementById('interceptacao').value,
+                largura_faixa: document.getElementById('largura_faixa').value,
+                descricaolocal: document.getElementById('descricaolocal').value,               
+            };
+
+            const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dados_escoamento_superficial.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function carregarJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const dados = JSON.parse(e.target.result);
+                document.getElementById('ingrediente').value = dados.ingrediente || '';
+                document.getElementById('dose').value = dados.dose;
+                document.getElementById('t_half').value = dados.t_half;
+                document.getElementById('koc').value = dados.koc;
+                document.getElementById('coef_escoamento').value = dados.coef_escoamento;
+                document.getElementById('declividade').value = dados.declividade;
+                document.getElementById('interceptacao').value = dados.interceptacao;
+                document.getElementById('largura_faixa').value = dados.largura_faixa;
+                document.getElementById('org').value = dados.org;
+                document.getElementById('plt').value = dados.plt;
+                document.getElementById('textura').value = dados.textura;
+                document.getElementById('carbono_organico').value = dados.carbono_organico || '';               
+                document.getElementById('descricaolocal').value = dados.descricaolocal || '';
+
+            };
+            reader.readAsText(file);
+        }
+
+        async function gerarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const totalPagesExp = "{total_pages_count_string}";
+            const tituloApp = "ARAquá – Avaliação de Risco Ambiental de Agrotóxicos";
+            const dataHora = new Date().toLocaleString("pt-BR");
+
+            const headerRodape = function () {
+                const pageSize = doc.internal.pageSize;
+                const pageHeight = pageSize.height || doc.internal.pageSize.getHeight();
+
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(tituloApp, 20, 10);
+                doc.text(`Gerado em: ${dataHora}`, pageSize.width - 20, 10, { align: "right" });
+
+                const pageNumber = doc.internal.getNumberOfPages();
+                doc.text(`Página ${pageNumber} de ${totalPagesExp}`, pageSize.width - 40, pageHeight - 10);
+            };
+
+            doc.setFontSize(16);
+            doc.text("Relatório de Carreamento Superficial", 20, 20);
+            doc.setFontSize(12);
+            let offset = 30;
+
+            // Agrotóxico
+            doc.text("Agrotóxico", 20, offset);
+            doc.autoTable({
+                startY: offset + 4,
+                head: [["Dose (g/ha)", "Koc (mL/g)", "Meia-vida (dias)"]],
+                body: [[
+                    document.getElementById('dose').value,
+                    document.getElementById('koc').value,
+                    document.getElementById('t_half').value
+                ]],
+                theme: "grid",
+                didDrawPage: headerRodape
+            });
+
+            // Características da Área
+            offset = doc.lastAutoTable.finalY + 10;
+            doc.text("Características da Área", 20, offset);
+            doc.autoTable({
+                startY: offset + 4,
+                head: [["Declividade (%)", "Interceptação (%)", "Largura da faixa (m)", "Carbono Orgânico (%)"]],
+                body: [[
+                    document.getElementById('declividade').value,
+                    document.getElementById('interceptacao').value,
+                    document.getElementById('largura_faixa').value,
+                    document.getElementById('carbono_organico').value
+                ]],
+                theme: "grid",
+                didDrawPage: headerRodape
+            });
+
+            // Resultados principais
+            offset = doc.lastAutoTable.finalY + 10;
+            doc.text("Resultado da Simulação", 20, offset);
+            doc.autoTable({
+                startY: offset + 4,
+                head: [["Parâmetro", "Valor"]],
+                body: [
+                    ["Massa transportada (µg)", resultadoM10.toExponential(3)],
+                    ["Concentração estimada no lago (µg/L)", resultadoCl.toFixed(2)]
+                ],
+                theme: "grid",
+                didDrawPage: headerRodape
+            });
+
+            // QR – Organismos Aquáticos
+            offset = doc.lastAutoTable.finalY + 10;
+            doc.text(`Risco Ecotoxicológico – Organismos Aquáticos (${orgVal.toFixed(2)} µg/L)`, 20, offset);
+            doc.autoTable({
+                startY: offset + 4,
+                head: [["Tipo de Efeito", "LOC", "QR", "Classificação"]],
+                body: resultadosORG.map(r => [r.efeito, r.loc, r.QR, r.status]),
+                theme: "grid",
+                didDrawPage: headerRodape,
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index === 3) {
+                        if (data.cell.raw === "🟢") {
+                            data.cell.styles.fillColor = [200, 255, 200]; // Verde claro
+                            data.cell.text = ['Abaixo ou no limite do LOC'];
+                        } else if (data.cell.raw === "🔴") {
+                            data.cell.styles.fillColor = [255, 200, 200]; // Vermelho claro
+                            data.cell.text = ['Acima do LOC'];
+                        }
+                    }
+                }
+            });
+
+            // QR – Plantas Aquáticas
+            offset = doc.lastAutoTable.finalY + 10;
+            doc.text(`Risco Ecotoxicológico – Plantas Aquáticas (${pltVal.toFixed(2)} µg/L)`, 20, offset);
+            doc.autoTable({
+                startY: offset + 4,
+                head: [["Tipo de Efeito", "LOC", "QR", "Classificação"]],
+                body: resultadosPLT.map(r => [r.efeito, r.loc, r.QR, r.status]),
+                theme: "grid",
+                didDrawPage: headerRodape,
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index === 3) {
+                        if (data.cell.raw === "🟢") {
+                            data.cell.styles.fillColor = [200, 255, 200]; // Verde claro
+                            data.cell.text = ['Abaixo ou no limite do LOC'];
+                        } else if (data.cell.raw === "🔴") {
+                            data.cell.styles.fillColor = [255, 200, 200]; // Vermelho claro
+                            data.cell.text = ['Acima do LOC'];
+                        }
+                    }
+                }
+            });
+
+            // Rodapé final
+            offset = doc.lastAutoTable.finalY + 6;
+            doc.setFontSize(7);
+            doc.text(["QR: Quociente de Risco; LOC: Nível de Preocupação da EPA"], 20, offset);
+
+            if (typeof doc.putTotalPages === 'function') {
+                doc.putTotalPages(totalPagesExp);
+            }
+
+            doc.save("relatorio_carreamento.pdf");
+        }
+
+
+        // Firebase auth
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                window.location.href = "index.html";
+            });
+        }
+    </script>
+</body>
+
+</html>

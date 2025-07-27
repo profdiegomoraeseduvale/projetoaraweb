@@ -1,26 +1,37 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cálculo de Lixiviação</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <script src="firebase-config.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f5f5f5;
-      padding: 20px;
     }
+
+    .campo-invalido {
+      border: 2px solid #e53935 !important;
+      background-color: #fff3f3;
+    }
+
     h1 {
       color: #004d40;
       margin-bottom: 30px;
     }
+
     .custom-file-upload {
       margin-top: 15px;
       padding: 10px 20px;
@@ -33,9 +44,11 @@
       display: inline-block;
       font-size: 14px;
     }
+
     .custom-file-upload:hover {
       background-color: #004d40;
     }
+
     fieldset {
       margin-top: 20px;
       padding: 15px;
@@ -46,436 +59,856 @@
 
     .input-solo {
       width: 100%;
-      max-width: 120px; /* ou qualquer valor que desejar */
+      max-width: 120px;
+      /* ou qualquer valor que desejar */
     }
-
- 
 
     legend {
       font-weight: bold;
       color: #00796b;
     }
+
     #graficoAF {
-      max-width: 100%;
+      width: 600px;
+      height: 400px;
       margin-top: 20px;
     }
 
-     @media (max-width: 800px) {
+    @media (max-width: 800px) {
       .row {
         flex-direction: column;
         flex-wrap: wrap;
       }
+
       .input-solo {
         width: 100%;
-        max-width: none; /* Remove o limite de largura em telas pequenas */
+        max-width: none;
+        /* Remove o limite de largura em telas pequenas */
       }
-   
+
     }
   </style>
 </head>
+
 <body>
-  <div class="container">
-    <h1 class="text-center">Cálculo de Lixiviação de Agrotóxicos</h1>
-    <div class="row">
-      <div class="col-lg-7 mb-4">
-        <div class="bg-white p-4 shadow rounded">
-        <fieldset>
-            <legend>Dados do Agrotóxico</legend>
-            <div class="row g-3 align-items-center justify-content-center">
-              <div class="col-12">
-                <label>Ingrediente Ativo:</label>
-                <input type="text" id="ingrediente" class="form-control input-agro w-100 mx-auto">
-              </div>
-              <div class="col-12 col-md-auto">
-                <label>Dose (g/ha):</label>
-                <input type="number" id="dose" class="form-control" value="240">
-              </div>
-              <div class="col-12 col-md-auto">
-                <label>Koc (mL/g):</label>
-                <input type="number" id="koc" class="form-control" value="80">
-              </div>
-              <div class="col-12 col-md-auto">
-                <label>Meia-vida (dias):</label>
-                <input type="number" id="t_half" class="form-control" value="360">
-              </div>
-            </div>
-         </fieldset>
-
-          <hr>
-
-         <fieldset>
-            <legend>Dados do Solo</legend>
-
-            <!-- Camada 1 -->
-            <div class="card mb-3">
-              <div class="card-body">
-                <h5 class="card-title">Camada 1</h5>
-                <div class="row g-2 align-items-center justify-content-center">
-                  <div class="col-12 col-md-auto">
-                    <label>z0 (cm)</label>
-                    <input type="number" id="z0_1" class="form-control input-solo" value="0">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>zf (cm)</label>
-                    <input type="number" id="z1_1" class="form-control input-solo" value="20" onchange="atualizarProfundidades()">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>BD</label>
-                    <input type="number" id="bd1" class="form-control input-solo" value="1.3">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>OC</label>
-                    <input type="number" id="oc1" class="form-control input-solo" value="1.8">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>FC</label>
-                    <input type="number" id="fc1" class="form-control input-solo" value="34">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Camada 2 -->
-            <div class="card mb-3">
-              <div class="card-body">
-                <h5 class="card-title">Camada 2</h5>
-                <div class="row g-2 align-items-center justify-content-center">
-                  <div class="col-12 col-md-auto">
-                    <label>z0 (cm)</label>
-                    <input type="number" id="z0_2" class="form-control input-solo" readonly>
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>zf (cm)</label>
-                    <input type="number" id="z1_2" class="form-control input-solo" value="40" onchange="atualizarProfundidades()">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>BD</label>
-                    <input type="number" id="bd2" class="form-control input-solo" value="1.4">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>OC</label>
-                    <input type="number" id="oc2" class="form-control input-solo" value="1.2">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>FC</label>
-                    <input type="number" id="fc2" class="form-control input-solo" value="32">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Camada 3 -->
-            <div class="card mb-3">
-              <div class="card-body">
-                <h5 class="card-title">Camada 3</h5>
-                <div class="row g-2 align-items-center justify-content-center">
-                  <div class="col-12 col-md-auto">
-                    <label>z0 (cm)</label>
-                    <input type="number" id="z0_3" class="form-control input-solo" readonly>
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>zf (cm)</label>
-                    <input type="number" id="z1_3" class="form-control input-solo" value="80" onchange="atualizarProfundidades()">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>BD</label>
-                    <input type="number" id="bd3" class="form-control input-solo" value="1.5">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>OC</label>
-                    <input type="number" id="oc3" class="form-control input-solo" value="0.6">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>FC</label>
-                    <input type="number" id="fc3" class="form-control input-solo" value="30">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Camada 4 -->
-            <div class="card mb-3">
-              <div class="card-body">
-                <h5 class="card-title">Camada 4</h5>
-                <div class="row g-2 align-items-center justify-content-center">
-                  <div class="col-12 col-md-auto">
-                    <label>z0 (cm)</label>
-                    <input type="number" id="z0_4" class="form-control input-solo" readonly>
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>zf (cm)</label>
-                    <input type="number" id="z1_4" class="form-control input-solo" value="200" onchange="atualizarProfundidades()">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>BD</label>
-                    <input type="number" id="bd4" class="form-control input-solo" value="1.5">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>OC</label>
-                    <input type="number" id="oc4" class="form-control input-solo" value="0.6">
-                  </div>
-                  <div class="col-12 col-md-auto">
-                    <label>FC</label>
-                    <input type="number" id="fc4" class="form-control input-solo" value="30">
-                  </div>
-                </div>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Dados Climáticos</legend>
-            <div class="row g-2 align-items-center justify-content-center">
-              <div class="col-12 col-md-auto">
-                <label>Precipitação (mm/ano):</label>
-                <input type="number" id="precipitacao" class="form-control" value="1300">
-              </div>
-              <div class="col-12 col-md-auto">
-                <label>Evapotranspiração (mm/ano):</label>
-                <input type="number" id="et" class="form-control" value="600">
-              </div>
-              <div class="col-12 col-md-auto">
-                <label>Irrigação (mm/ano):</label>
-                <input type="number" id="irrigacao" class="form-control" value="800">
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Dados do Aquífero</legend>
-            <div class="row g-2 align-items-center justify-content-center">
-              <div class="col-12 col-md-auto">
-                <label>Porosidade (%):</label>
-                <input type="number" id="porosidade" class="form-control" value="4">
-              </div>
-              <div class="col-12 col-md-auto">
-                <label>Profundidade de mistura (m):</label>
-                <input type="number" id="profundidade" class="form-control" value="2">
-              </div>
-            </div>
-          </fieldset>
-
-          <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
-            <button class="btn btn-success" onclick="calcular()">Calcular Concentração</button>
-            <button class="btn btn-primary" onclick="salvarJSON()">Salvar Dados</button>
-            <button class="btn btn-danger" onclick="document.getElementById('uploadJSON').click()">Carregar Dados</button>
-            <input type="file" id="uploadJSON" accept=".json" style="display: none;" onchange="carregarJSON(event)">
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-5">
-        <div class="bg-white p-4 shadow rounded">
-          <div class="result" id="resultado">
-            <canvas id="graficoAF"></canvas>
-          </div>
-          <button class="btn btn-primary mt-3" onclick="gerarPDF()">Gerar PDF estruturado</button>
-        </div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <span class="navbar-brand">Meu App - Módulo de Lixiviação de Agrotóxicos</span>
+      <div class="ms-auto d-flex align-items-center">
+        <span class="navbar-text me-3" id="boasVindas">Olá, usuário</span>
+        <button class="btn btn-outline-light btn-sm" onclick="logout()">Sair</button>
       </div>
     </div>
+  </nav>
+
+  <!-- Conteúdo -->
+  <div class="container container d-flex mt-5 justify-content-center align-items-center">
+    <h1 class="text-center"></h1>
+    <div class="w-100" style="max-width: 1200px;">
+      <div class="row">
+        <div class="col-lg-7 mb-4 w-100">
+          <div class="bg-white p-4 shadow rounded">
+
+            <!-- Nav tabs -->
+            <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="agro-tab" data-bs-toggle="tab" data-bs-target="#agro" type="button"
+                  role="tab">Agrotóxico</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="solo-tab" data-bs-toggle="tab" data-bs-target="#solo" type="button"
+                  role="tab">Solo</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="local-tab" data-bs-toggle="tab" data-bs-target="#local" type="button"
+                  role="tab">Localidade</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="aq-tab" data-bs-toggle="tab" data-bs-target="#aq" type="button"
+                  role="tab">Corpo d'água subterrâneo</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="resultado-tab" data-bs-toggle="tab" data-bs-target="#resultadoTab"
+                  type="button" role="tab">Resultados</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="btn btn-success" onclick="calcular()">Calcular Concentração</button>
+              </li>
+
+
+            </ul>
+
+            <!-- Tab panes -->
+            <div class="tab-content" id="myTabContent">
+
+              <!-- Agrotóxico -->
+              <div class="tab-pane fade show active" id="agro" role="tabpanel">
+                <fieldset>
+
+                  <div class="row g-3 align-items-center justify-content-center">
+                    <div class="col-12">
+                      <label>Ingrediente Ativo:</label>
+                      <input type="text" id="ingrediente" class="form-control input-agro w-100 mx-auto">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Dose (g/ha):</label>
+                      <input type="number" id="dose" class="form-control" value="240">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Koc (mL/g):</label>
+                      <input type="number" id="koc" class="form-control" value="80">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Meia-vida (dias):</label>
+                      <input type="number" id="t_half" class="form-control" value="360">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Padrão de Potabilidade (ug/L):</label>
+                      <input type="number" id="pot" class="form-control" required>
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+
+              <!-- Solo -->
+              <div class="tab-pane fade" id="solo" role="tabpanel">
+                <fieldset>
+
+                  <div class="col-12">
+                    <label>Descrição:</label>
+                    <input type="text" id="descricaosolo" class="form-control input-agro w-100 mx-auto">
+                  </div><br>
+
+                  <!-- Camadas -->
+                  <!-- Camada 1 -->
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h5 class="card-title">Camada 1</h5>
+                      <div class="row g-2 align-items-center justify-content-center">
+                        <div class="col-12 col-md-auto">
+                          <label>z0 (cm)</label>
+                          <input type="number" id="z0_1" class="form-control input-solo" value="0">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>zf (cm)</label>
+                          <input type="number" id="z1_1" class="form-control input-solo" value="20"
+                            onchange="atualizarProfundidades()">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>BD</label>
+                          <input type="number" id="bd1" class="form-control input-solo" value="1.3">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>OC</label>
+                          <input type="number" id="oc1" class="form-control input-solo" value="1.8">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>FC</label>
+                          <input type="number" id="fc1" class="form-control input-solo" value="34">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Camada 2 -->
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h5 class="card-title">Camada 2</h5>
+                      <div class="row g-2 align-items-center justify-content-center">
+                        <div class="col-12 col-md-auto">
+                          <label>z0 (cm)</label>
+                          <input type="number" id="z0_2" class="form-control input-solo" readonly>
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>zf (cm)</label>
+                          <input type="number" id="z1_2" class="form-control input-solo" value="40"
+                            onchange="atualizarProfundidades()">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>BD</label>
+                          <input type="number" id="bd2" class="form-control input-solo" value="1.4">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>OC</label>
+                          <input type="number" id="oc2" class="form-control input-solo" value="1.2">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>FC</label>
+                          <input type="number" id="fc2" class="form-control input-solo" value="32">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Camada 3 -->
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h5 class="card-title">Camada 3</h5>
+                      <div class="row g-2 align-items-center justify-content-center">
+                        <div class="col-12 col-md-auto">
+                          <label>z0 (cm)</label>
+                          <input type="number" id="z0_3" class="form-control input-solo" readonly>
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>zf (cm)</label>
+                          <input type="number" id="z1_3" class="form-control input-solo" value="80"
+                            onchange="atualizarProfundidades()">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>BD</label>
+                          <input type="number" id="bd3" class="form-control input-solo" value="1.5">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>OC</label>
+                          <input type="number" id="oc3" class="form-control input-solo" value="0.6">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>FC</label>
+                          <input type="number" id="fc3" class="form-control input-solo" value="30">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Camada 4 -->
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <h5 class="card-title">Camada 4</h5>
+                      <div class="row g-2 align-items-center justify-content-center">
+                        <div class="col-12 col-md-auto">
+                          <label>z0 (cm)</label>
+                          <input type="number" id="z0_4" class="form-control input-solo" readonly>
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>zf (cm)</label>
+                          <input type="number" id="z1_4" class="form-control input-solo" value="200"
+                            onchange="atualizarProfundidades()">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>BD</label>
+                          <input type="number" id="bd4" class="form-control input-solo" value="1.5">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>OC</label>
+                          <input type="number" id="oc4" class="form-control input-solo" value="0.6">
+                        </div>
+                        <div class="col-12 col-md-auto">
+                          <label>FC</label>
+                          <input type="number" id="fc4" class="form-control input-solo" value="30">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style="font-size: 12px;">
+                    z0: profundidade inicial da camada; zf: profundidade final da camada;
+                    BD: Densidade do Solo (g/cm³); OC: Carbono Orgânico (%); FC: Capacidade de Campo (%)
+                  </p>
+                </fieldset>
+              </div>
+
+              <!-- Localidade -->
+              <div class="tab-pane fade" id="local" role="tabpanel">
+                <fieldset>
+
+                  <div class="row g-2 align-items-center justify-content-center">
+                    <div class="col-12">
+                      <label>Descrição:</label>
+                      <input type="text" id="descricaolocal" class="form-control input-agro w-100 mx-auto">
+                    </div><br>
+                    <div class="col-12 col-md-auto">
+                      <label>Precipitação (mm/ano):</label>
+                      <input type="number" id="precipitacao" class="form-control" value="1300">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Evapotranspiração (mm/ano):</label>
+                      <input type="number" id="et" class="form-control" value="600">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Irrigação (mm/ano):</label>
+                      <input type="number" id="irrigacao" class="form-control" value="800">
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+
+              <!-- Aquífero -->
+              <div class="tab-pane fade" id="aq" role="tabpanel">
+                <fieldset>
+
+                  <div class="row g-2 align-items-center justify-content-center">
+                    <div class="col-12 col-md-auto">
+                      <label>Porosidade<sup>(*)</sup> (%):</label>
+                      <input type="number" id="porosidade" class="form-control" value="4">
+                    </div>
+                    <div class="col-12 col-md-auto">
+                      <label>Profundidade de mistura (m):</label>
+                      <input type="number" id="profundidade" class="form-control" value="2">
+                    </div>
+                  </div>
+                  <p style="font-size: 12px;">
+                    (*): na zona saturada;
+                  </p>
+                </fieldset>
+              </div>
+
+              <div class="tab-pane fade" id="resultadoTab" role="tabpanel">
+                <div id="resultado">
+                  <canvas id="graficoAF"></canvas>
+                  <!-- O conteúdo do gráfico + tabelas será inserido dinamicamente por JS -->
+                </div>
+
+                <button class="btn btn-primary mt-3" onclick="gerarPDF()">Gerar Relatório</button>
+              </div>
+
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+
+              <button class="btn btn-primary" onclick="salvarJSON()">Salvar Dados</button>
+              <button class="btn btn-danger" onclick="document.getElementById('uploadJSON').click()">Carregar
+                Dados</button>
+              <input type="file" id="uploadJSON" accept=".json" style="display: none;" onchange="carregarJSON(event)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+
+
+      <script>
+        let grafico;
+        let valoresAF = [];
+
+        function atualizarProfundidades() {
+          const z1_1 = parseFloat(document.getElementById('z1_1').value);
+          const z1_2 = parseFloat(document.getElementById('z1_2').value);
+          const z1_3 = parseFloat(document.getElementById('z1_3').value);
+          document.getElementById('z0_2').value = z1_1;
+          document.getElementById('z0_3').value = z1_2;
+          document.getElementById('z0_4').value = z1_3;
+        }
+
+        window.onload = atualizarProfundidades;
+
+        function calcular() {
+
+          const camposObrigatorios = [
+            // Numéricos
+            'dose', 'koc', 't_half',
+            'bd1', 'bd2', 'bd3', 'bd4',
+            'oc1', 'oc2', 'oc3', 'oc4',
+            'fc1', 'fc2', 'fc3', 'fc4',
+            'z0_1', 'z0_2', 'z0_3', 'z0_4',
+            'z1_1', 'z1_2', 'z1_3', 'z1_4',
+            'precipitacao', 'et', 'irrigacao',
+            'porosidade', 'profundidade', 'pot',
+
+            // Texto
+            'ingrediente', 'descricaosolo', 'descricaolocal'
+          ];
+
+          const camposTexto = ['ingrediente', 'descricaosolo', 'descricaolocal'];
+          let camposVazios = [];
+
+          // Limpa estilos anteriores
+          camposObrigatorios.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('campo-invalido');
+          });
+
+          // Verifica campos
+          camposObrigatorios.forEach(id => {
+            const el = document.getElementById(id);
+            const valor = el?.value?.trim();
+
+            let invalido = false;
+
+            if (!el) return;
+
+            if (el.tagName === 'SELECT') {
+              invalido = (valor === '' || valor === null);
+            } else if (camposTexto.includes(id)) {
+              invalido = (valor === '');
+            } else {
+              invalido = (valor === '' || isNaN(parseFloat(valor)));
+            }
+
+            if (invalido) {
+              camposVazios.push(id);
+              el.classList.add('campo-invalido');
+            }
+          });
+
+
+
+
+          const dose = parseFloat(document.getElementById('dose').value) * 1e6;
+          const Koc = parseFloat(document.getElementById('koc').value);
+          const t_half = parseFloat(document.getElementById('t_half').value);
+
+          const bd = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`bd${i}`).value));
+          const oc = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`oc${i}`).value) / 100);
+          const fc = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`fc${i}`).value) / 100);
+          const z0 = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`z0_${i}`).value) / 100);
+          const z1 = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`z1_${i}`).value) / 100);
+          const l = z1.map((z, i) => z - z0[i]);
+
+          const prec = parseFloat(document.getElementById('precipitacao').value);
+          const et = parseFloat(document.getElementById('et').value);
+          const irr = parseFloat(document.getElementById('irrigacao').value);
+          const q = (prec + irr - et) / 365 / 1000;
+
+          const porosidade = parseFloat(document.getElementById('porosidade').value) / 100;
+          const profundidade = parseFloat(document.getElementById('profundidade').value);
+          const area = 10000;
+          const k = 0.693 / t_half;
+
+          let AF_total = 1;
+          let resultadosCamadas = [];
+          valoresAF = [];
+          resultadosPorCamadaDetalhados = [];
+
+          for (let i = 0; i < 4; i++) {
+            const RF = 1 + (bd[i] * oc[i] * Koc) / fc[i];
+            const tr = (RF * l[i] * fc[i]) / q;
+            const AF = Math.exp(-k * tr);
+            AF_total *= AF;
+            valoresAF.push(AF);
+            resultadosCamadas.push(`Camada ${i + 1}: RF=${RF.toFixed(2)}, tr=${tr.toFixed(2)} dias, AF=${AF.toFixed(4)}`);
+
+            resultadosPorCamadaDetalhados.push({
+              camada: i + 1,
+              RF: RF,
+              TR: tr,
+              AF: AF
+            });
+          }
+
+          const m = dose * AF_total;
+          const volume = porosidade * profundidade * area * 1000;
+          const Cf = m / volume;
+
+          const vmp = parseFloat(document.getElementById('pot').value); // ou use 'vmp' se mudar o id
+          let QRpotab = null;
+          let riscoPot = '';
+
+          if (!isNaN(vmp) && vmp > 0) {
+            QRpotab = Cf / vmp;
+            riscoPot = QRpotab > 1.0
+              ? '🔴 Acima do padrão de potabilidade'
+              : '🟢 Dentro do padrão de potabilidade';
+          }
+
+          const resultadoDiv = document.getElementById('resultado');
+
+          let resultadoHTML = `
+  <h2 class="mt-4">Resultados</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm text-center align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Camada</th>
+          <th>RF</th>
+          <th>TR (dias)</th>
+          <th>AF</th>
+        </tr>
+      </thead>
+      <tbody>
+`;
+
+          for (let i = 0; i < 4; i++) {
+            resultadoHTML += `
+        <tr>
+          <td>Camada ${i + 1}</td>
+          <td>${resultadosPorCamadaDetalhados[i].RF.toFixed(2)}</td>
+          <td>${resultadosPorCamadaDetalhados[i].TR.toFixed(2)}</td>
+          <td>${resultadosPorCamadaDetalhados[i].AF.toFixed(2)}</td>
+        </tr>
+  `;
+          }
+
+          resultadoHTML += `
+      </tbody>
+    </table>
   </div>
 
+   <p style="font-size: 12px;">
+      RF: fator de retardo; 
+      TR: tempo de percurso;
+      AF: fator de atenuação;
+    </p>
+
+  <div class="table-responsive w-100 mt-3">
+    <table class="table table-bordered table-sm w-auto">
+      <tbody>
+        <tr>
+          <th>AF total</th>
+          <td>${AF_total.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <th>Massa lixiviada</th>
+          <td>${m.toExponential(2)} µg</td>
+        </tr>
+        <tr>
+          <th>Concentração final</th>
+          <td>${Cf.toFixed(2)} µg/L</td>
+        </tr>
+         <tr>
+          <th>QR</th>
+          <td>${QRpotab.toFixed(2)}</td>
+        </tr>
+         <tr>
+          <th>Classificação</th>
+          <td>${riscoPot}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+ <p style="font-size: 12px;">
+      QR: Quociente de Risco;
+    </p>
   
+`;
 
-  <script>
-    let grafico;
-    let valoresAF = [];
 
-  function atualizarProfundidades() {
-    const z1_1 = parseFloat(document.getElementById('z1_1').value);
-    const z1_2 = parseFloat(document.getElementById('z1_2').value);
-    const z1_3 = parseFloat(document.getElementById('z1_3').value);
-    document.getElementById('z0_2').value = z1_1;
-    document.getElementById('z0_3').value = z1_2;
-    document.getElementById('z0_4').value = z1_3;
-  }
 
-  window.onload = atualizarProfundidades;
+          resultadoDiv.innerHTML = resultadoHTML;
 
-  function calcular() {
-    const dose = parseFloat(document.getElementById('dose').value) * 1e6;
-    const Koc = parseFloat(document.getElementById('koc').value);
-    const t_half = parseFloat(document.getElementById('t_half').value);
+          /*const CfFinal = Cf.toFixed(2);
+          const pot = parseFloat(document.getElementById('pot').value);
+          const ctx = document.getElementById('graficoAF').getContext('2d');
+          if (grafico) grafico.destroy();
+          grafico = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Concentração Final', 'Padrão de Potabilidade'],
+              datasets: [{
+                label: 'µg/L',
+                data: [Cf, pot],
+                backgroundColor: ['#00796b', '#c62828']
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return context.dataset.label + ": " + context.parsed.y.toFixed(2) + " µg/L";
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Concentração (µg/L)'
+                  }
+                }
+              }
+            }
+            }); */
+          // Direcionar para a aba de Resultados após o cálculo (usando Bootstrap 5)
+          const abaResultados = new bootstrap.Tab(document.querySelector('#resultado-tab'));
+          abaResultados.show();
+        }
 
-    const bd = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`bd${i}`).value));
-    const oc = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`oc${i}`).value) / 100);
-    const fc = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`fc${i}`).value) / 100);
-    const z0 = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`z0_${i}`).value) / 100);
-    const z1 = [1, 2, 3, 4].map(i => parseFloat(document.getElementById(`z1_${i}`).value) / 100);
-    const l = z1.map((z, i) => z - z0[i]);
+        function salvarJSON() {
+          const dados = {
+            ingrediente: document.getElementById('ingrediente').value,
+            dose: document.getElementById('dose').value,
+            koc: document.getElementById('koc').value,
+            t_half: document.getElementById('t_half').value,
+            descsolo: document.getElementById('descricaosolo').value,
+            pot: document.getElementById('pot').value,
+            solo: [1, 2, 3].map(i => ({
+              z0: document.getElementById(`z0_${i}`).value,
+              z1: document.getElementById(`z1_${i}`).value,
+              bd: document.getElementById(`bd${i}`).value,
+              oc: document.getElementById(`oc${i}`).value,
+              fc: document.getElementById(`fc${i}`).value
+            })),
+            desclocal: document.getElementById('descricaolocal').value,
+            precipitacao: document.getElementById('precipitacao').value,
+            et: document.getElementById('et').value,
+            irrigacao: document.getElementById('irrigacao').value,
+            porosidade: document.getElementById('porosidade').value,
+            profundidade: document.getElementById('profundidade').value
+          };
 
-    const prec = parseFloat(document.getElementById('precipitacao').value);
-    const et = parseFloat(document.getElementById('et').value);
-    const irr = parseFloat(document.getElementById('irrigacao').value);
-    const q = (prec + irr - et) / 365 / 1000;
+          const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'dados_lixiviacao.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        }
 
-    const porosidade = parseFloat(document.getElementById('porosidade').value) / 100;
-    const profundidade = parseFloat(document.getElementById('profundidade').value);
-    const area = 10000;
-    const k = 0.693 / t_half;
+        function carregarJSON(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = e => {
+            const dados = JSON.parse(e.target.result);
+            document.getElementById('ingrediente').value = dados.ingrediente || '';
+            document.getElementById('dose').value = dados.dose;
+            document.getElementById('koc').value = dados.koc;
+            document.getElementById('t_half').value = dados.t_half;
+            document.getElementById('pot').value = dados.pot;
+            document.getElementById('descricaosolo').value = dados.descsolo || '';
+            dados.solo.forEach((camada, i) => {
+              document.getElementById(`z0_${i + 1}`).value = camada.z0;
+              document.getElementById(`z1_${i + 1}`).value = camada.z1;
+              document.getElementById(`bd${i + 1}`).value = camada.bd;
+              document.getElementById(`oc${i + 1}`).value = camada.oc;
+              document.getElementById(`fc${i + 1}`).value = camada.fc;
+            });
+            document.getElementById('descricaolocal').value = dados.desclocal || '';
+            document.getElementById('precipitacao').value = dados.precipitacao;
+            document.getElementById('et').value = dados.et;
+            document.getElementById('irrigacao').value = dados.irrigacao;
+            document.getElementById('porosidade').value = dados.porosidade;
+            document.getElementById('profundidade').value = dados.profundidade;
 
-    let AF_total = 1;
-    let resultadosCamadas = [];
-    valoresAF = [];
+            atualizarProfundidades();
+          };
+          reader.readAsText(file);
+        }
 
-    for (let i = 0; i < 4; i++) {
-      const RF = 1 + (bd[i] * oc[i] * Koc) / fc[i];
-      const tr = (RF * l[i] * fc[i]) / q;
-      const AF = Math.exp(-k * tr);
-      AF_total *= AF;
-      valoresAF.push(AF);
-      resultadosCamadas.push(`Camada ${i + 1}: RF=${RF.toFixed(2)}, tr=${tr.toFixed(2)} dias, AF=${AF.toFixed(4)}`);
-    }
+        async function gerarPDF() {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          const totalPagesExp = "{total_pages_count_string}";
+          const tituloApp = "ARAquá – Avaliação de Risco Ambiental de Agrotóxicos";
+          const dataHora = new Date().toLocaleString("pt-BR");
 
-    const m = dose * AF_total;
-    const volume = porosidade * profundidade * area * 1000;
-    const Cf = m / volume;
+          // Cabeçalho + rodapé
+          const headerRodape = function (data) {
+            const pageSize = doc.internal.pageSize;
+            const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
 
-    const resultadoDiv = document.getElementById('resultado');
-    resultadoDiv.innerHTML = `
-      <h2>Resultado</h2>
-      ${resultadosCamadas.map(r => `<p>${r}</p>`).join('')}
-      <p><strong>AF total:</strong> ${AF_total.toFixed(4)}</p>
-      <p><strong>Massa no aquífero:</strong> ${m.toExponential(2)} µg</p>
-      <p><strong>Concentração final:</strong> ${Cf.toFixed(2)} µg/L</p>
-      <canvas id="graficoAF" class="mt-3" style="max-width: 100%;"></canvas>
-    `;
+            doc.setFontSize(10);
+            doc.setTextColor(100);
 
-    const ctx = document.getElementById('graficoAF').getContext('2d');
-    if (grafico) grafico.destroy();
-    grafico = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Camada 1', 'Camada 2', 'Camada 3'],
-        datasets: [{
-          label: 'AF por Camada',
-          data: valoresAF,
-          borderColor: '#00796b',
-          backgroundColor: 'rgba(0,121,107,0.2)',
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true, max: 1 } }
-      }
-    });
-  }
+            // Cabeçalho
+            doc.text(tituloApp, 20, 10);
+            doc.text(`Gerado em: ${dataHora}`, pageSize.width - 20, 10, { align: "right" });
 
-  function salvarJSON() {
-  const dados = {
-    ingrediente: document.getElementById('ingrediente').value,
-    dose: document.getElementById('dose').value,
-    koc: document.getElementById('koc').value,
-    t_half: document.getElementById('t_half').value,
-    solo: [1, 2, 3].map(i => ({
-      z0: document.getElementById(`z0_${i}`).value,
-      z1: document.getElementById(`z1_${i}`).value,
-      bd: document.getElementById(`bd${i}`).value,
-      oc: document.getElementById(`oc${i}`).value,
-      fc: document.getElementById(`fc${i}`).value
-    })),
-    precipitacao: document.getElementById('precipitacao').value,
-    et: document.getElementById('et').value,
-    irrigacao: document.getElementById('irrigacao').value,
-    porosidade: document.getElementById('porosidade').value,
-    profundidade: document.getElementById('profundidade').value
-  };
+            // Rodapé
+            const pageNumber = doc.internal.getNumberOfPages();
+            doc.text(`Página ${pageNumber} de ${totalPagesExp}`, pageSize.width - 40, pageHeight - 10);
+          };
 
-  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'dados_lixiviacao.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
+          // Título
+          doc.setFontSize(16);
+          doc.text("Relatório de Lixiviação", 20, 20);
+          doc.setFontSize(12);
+          let offset = 30;
 
-  function carregarJSON(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dados = JSON.parse(e.target.result);
-    document.getElementById('ingrediente').value = dados.ingrediente || '';
-    document.getElementById('dose').value = dados.dose;
-    document.getElementById('koc').value = dados.koc;
-    document.getElementById('t_half').value = dados.t_half;
-    dados.solo.forEach((camada, i) => {
-      document.getElementById(`z0_${i + 1}`).value = camada.z0;
-      document.getElementById(`z1_${i + 1}`).value = camada.z1;
-      document.getElementById(`bd${i + 1}`).value = camada.bd;
-      document.getElementById(`oc${i + 1}`).value = camada.oc;
-      document.getElementById(`fc${i + 1}`).value = camada.fc;
-    });
-    document.getElementById('precipitacao').value = dados.precipitacao;
-    document.getElementById('et').value = dados.et;
-    document.getElementById('irrigacao').value = dados.irrigacao;
-    document.getElementById('porosidade').value = dados.porosidade;
-    document.getElementById('profundidade').value = dados.profundidade;
+          // Tabela: Agrotóxico
+          doc.text("Agrotóxico", 20, offset);
+          doc.autoTable({
+            startY: offset + 4,
+            head: [["Ingrediente Ativo", "Dose (g/ha)", "Koc (mL/g)", "Meia-vida (dias)"]],
+            body: [[
+              document.getElementById('ingrediente').value,
+              document.getElementById('dose').value,
+              document.getElementById('koc').value,
+              document.getElementById('t_half').value
+            ]],
+            theme: "grid",
+            didDrawPage: headerRodape
+          });
 
-    atualizarProfundidades();
-  };
-  reader.readAsText(file);
-}
+          // Solo
+          offset = doc.lastAutoTable.finalY + 10;
+          doc.text("Solo", 20, offset);
+          doc.setFontSize(11);
+          doc.text(document.getElementById('descricaosolo').value, 20, offset + 6);
+          doc.setFontSize(12);
 
-  async function gerarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text("Relatório de Lixiviação de Agrotóxicos", 20, 20);
-    doc.setFontSize(12);
+          const soloData = [];
+          for (let i = 1; i <= 4; i++) {
+            soloData.push([
+              `Camada ${i}`,
+              document.getElementById('z0_' + i).value + " cm",
+              document.getElementById('z1_' + i).value + " cm",
+              document.getElementById('bd' + i).value,
+              document.getElementById('oc' + i).value + " %",
+              document.getElementById('fc' + i).value + " %"
+            ]);
+          }
 
-    doc.text("Dados de Entrada:", 20, 30);
-    doc.text(`Ingrediente Ativo: ${document.getElementById('ingrediente').value}`, 20, 32);
-    doc.text(`Dose: ${document.getElementById('dose').value} g/ha`, 20, 38);
-    doc.text(`Koc: ${document.getElementById('koc').value} mL/g`, 20, 44);
-    doc.text(`Meia-vida: ${document.getElementById('t_half').value} dias`, 20, 50);
+          doc.autoTable({
+            startY: offset + 12,
+            head: [["Camada", "z0", "z1", "BD", "OC", "FC"]],
+            body: soloData,
+            theme: "grid",
+            didDrawPage: headerRodape
+          });
 
-    let offset = 60;
-    doc.text("Dados do Solo:", 20, offset);
-    for (let i = 1; i <= 3; i++) {
-      offset += 7;
-      doc.text(`Camada ${i}: z0=${document.getElementById('z0_' + i).value} cm, z1=${document.getElementById('z1_' + i).value} cm, BD=${document.getElementById('bd' + i).value}, OC=${document.getElementById('oc' + i).value}%, FC=${document.getElementById('fc' + i).value}%`, 20, offset);
-    }
+          offset = doc.lastAutoTable.finalY + 6;
+          doc.setFontSize(7);
+          doc.text([
+            "z0: profundidade inicial da camada; z1: profundidade final da camada;",
+            "BD: Densidade do Solo (g/cm³); OC: Carbono Orgânico (%); FC: Capacidade de Campo (%)"
+          ], 20, offset);
 
-    offset += 10;
-    doc.text("Dados Climáticos:", 20, offset += 10);
-    doc.text(`Precipitação: ${document.getElementById('precipitacao').value} mm/ano`, 20, offset += 7);
-    doc.text(`Evapotranspiração: ${document.getElementById('et').value} mm/ano`, 20, offset += 7);
-    doc.text(`Irrigação: ${document.getElementById('irrigacao').value} mm/ano`, 20, offset += 7);
+          // Localidade
+          doc.setFontSize(12);
+          offset = doc.lastAutoTable.finalY + 16;
+          doc.text("Localidade", 20, offset);
+          doc.autoTable({
+            startY: offset + 4,
+            head: [["Descrição", "Precipitação (mm/ano)", "Evapotranspiração (mm/ano)", "Irrigação (mm/ano)"]],
+            body: [[
+              document.getElementById('descricaolocal').value,
+              document.getElementById('precipitacao').value,
+              document.getElementById('et').value,
+              document.getElementById('irrigacao').value
+            ]],
+            theme: "grid",
+            didDrawPage: headerRodape
+          });
 
-    offset += 10;
-    doc.text("Dados do Aquífero:", 20, offset += 10);
-    doc.text(`Porosidade: ${document.getElementById('porosidade').value}%`, 20, offset += 7);
-    doc.text(`Profundidade de mistura: ${document.getElementById('profundidade').value} m`, 20, offset += 7);
+          // Aquífero
+          offset = doc.lastAutoTable.finalY + 10;
+          doc.text("Corpo d'água subterrâneo", 20, offset);
+          doc.autoTable({
+            startY: offset + 4,
+            head: [["Porosidade(*) (%)", "Profundidade de mistura (m)"]],
+            body: [[
+              document.getElementById('porosidade').value,
+              document.getElementById('profundidade').value
+            ]],
+            theme: "grid",
+            didDrawPage: headerRodape
+          });
 
-    offset += 10;
-    doc.text("Resultados:", 20, offset += 10);
-    valoresAF.forEach((af, i) => {
-      offset += 7;
-      doc.text(`Camada ${i + 1}: AF = ${af.toFixed(4)}`, 20, offset);
-    });
+          offset = doc.lastAutoTable.finalY + 6;
+          doc.setFontSize(7);
+          doc.text(["(*) na zona saturada;"], 20, offset);
 
-    html2canvas(document.getElementById("graficoAF")).then(canvas => {
-      const imgData = canvas.toDataURL("image/png");
-      doc.addPage();
-      doc.setFontSize(14);
-      doc.text("Gráfico: AF por Camada", 20, 20);
-      doc.addImage(imgData, 'PNG', 20, 30, 170, 90);
-      doc.save("relatorio_lixiviacao.pdf");
-    });
-  }
+          // Resultados por camada
+          doc.setFontSize(12);
+          offset = doc.lastAutoTable.finalY + 16;
+          doc.text("Resultados de Lixiviação", 20, offset);
+          const resultadosData = resultadosPorCamadaDetalhados.map(r => [
+            `Camada ${r.camada}`,
+            r.RF.toFixed(2),
+            r.TR.toFixed(2),
+            r.AF.toFixed(4)
+          ]);
 
-   firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
-      } else {
-        window.location.href = "index.html";
-      }
-    });
-  </script>
- 
+          doc.autoTable({
+            startY: offset + 4,
+            head: [["Camada", "RF", "TR (dias)", "AF"]],
+            body: resultadosData,
+            theme: "grid",
+            didDrawPage: headerRodape
+          });
+
+          offset = doc.lastAutoTable.finalY + 6;
+          doc.setFontSize(7);
+          doc.text(["RF: fator de retardo; TR: tempo de percurso; AF: fator de atenuação;"], 20, offset);
+
+          // Cálculo QR
+          offset = doc.lastAutoTable.finalY + 50;
+          const Cf = resultadosPorCamadaDetalhados.reduce((acc, r) => acc * r.AF, 1) * parseFloat(document.getElementById('dose').value) * 1e6 /
+            (parseFloat(document.getElementById('porosidade').value) / 100 *
+              parseFloat(document.getElementById('profundidade').value) *
+              10000 * 1000);
+          const pot = parseFloat(document.getElementById('pot').value);
+
+          const qr = Cf / pot;
+          const classificacao = qr > 1.0
+            ? "Acima do padrão de potabilidade"
+            : "Dentro do padrão de potabilidade";
+
+          doc.autoTable({
+            startY: offset,
+            head: [["Parâmetro", "Valor (µg/L)"]],
+            body: [
+              ["Concentração Final Estimada", Cf.toFixed(2)],
+              ["Padrão de Potabilidade", pot.toFixed(2)],
+              ["QR", qr.toFixed(2)],
+              ["Classificação", classificacao]
+            ],
+            theme: "grid",
+            didDrawPage: headerRodape,
+            didParseCell: function (data) {
+              if (
+                data.row.index === 3 && // linha da "Classificação"
+                data.column.index === 1 // coluna do valor (segunda coluna)
+              ) {
+                if (qr > 1.0) {
+                  data.cell.styles.fillColor = [255, 200, 200]; // vermelho                  
+                } else {
+                  data.cell.styles.fillColor = [200, 255, 200]; // verde                  
+                }
+              }
+            }
+          });
+
+          offset = doc.lastAutoTable.finalY + 6;
+          doc.setFontSize(7);
+          doc.text(["QR: Quociente de Risco;"], 20, offset);
+
+          // Página nova: gráfico
+
+          headerRodape();
+
+          // Substitui {total_pages_count_string}
+          if (typeof doc.putTotalPages === 'function') {
+            doc.putTotalPages(totalPagesExp);
+          }
+
+          doc.save("relatorio_lixiviacao.pdf");
+
+          /*html2canvas(document.getElementById("graficoAF")).then(canvas => {
+            const imgData = canvas.toDataURL("image/png");
+            const img = new Image();
+            img.onload = function () {
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const imgWidth = pageWidth - 40;
+              const imgHeight = (img.height / img.width) * imgWidth;
+        
+              doc.setFontSize(12);
+              //doc.text("Gráfico", 20, 20);
+              //doc.addImage(imgData, 'PNG', 20, 30, imgWidth, imgHeight);
+        
+             
+        
+              
+            };
+            img.src = imgData;
+          });  */
+        }
+
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            document.getElementById("boasVindas").textContent = "Olá, " + (user.displayName || user.email);
+          } else {
+            window.location.href = "index.html";
+          }
+        });
+
+        function logout() {
+          firebase.auth().signOut().then(() => {
+            window.location.href = "index.html";
+          });
+        }
+
+      </script>
+
 </body>
+
 </html>
