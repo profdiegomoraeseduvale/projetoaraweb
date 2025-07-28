@@ -7,6 +7,7 @@
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -17,112 +18,62 @@
 
   <style>
     body {
-      background: radial-gradient(circle at top, #0f0f0f, #050505);
-      font-family: 'Orbitron', sans-serif;
-      color: #00ffe1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
+      background: linear-gradient(135deg, #00796b, #004d40);
+      font-family: 'Segoe UI', sans-serif;
     }
 
     .card {
-      background-color: #111;
-      border: 1px solid #00ffe1;
-      border-radius: 20px;
-      padding: 2rem;
-      box-shadow: 0 0 25px rgba(0, 255, 225, 0.4);
-      width: 100%;
-      max-width: 400px;
-      transition: transform 0.3s ease;
-    }
-
-    .card:hover {
-      transform: scale(1.02);
-      box-shadow: 0 0 40px rgba(0, 255, 225, 0.6);
-    }
-
-    .form-control {
-      background-color: transparent;
-      border: 1px solid #00ffe1;
-      color: #00ffe1;
-    }
-
-    .form-control::placeholder {
-      color: #00ffe18c;
+      border-radius: 16px;
+      background-color: #ffffff;
     }
 
     .form-control:focus {
-      background-color: #111;
-      color: #fff;
-      box-shadow: 0 0 10px #00ffe1;
-      border-color: #00ffe1;
+      border-color: #00796b;
+      box-shadow: 0 0 0 0.2rem rgba(0, 121, 107, 0.25);
     }
 
-    .btn-neon {
-      background: transparent;
-      color: #00ffe1;
-      border: 1px solid #00ffe1;
-      text-shadow: 0 0 5px #00ffe1;
-      box-shadow: 0 0 10px #00ffe1;
-      transition: all 0.3s ease;
+    .btn-primary {
+      background-color: #00796b;
+      border: none;
     }
 
-    .btn-neon:hover {
-      background-color: #00ffe1;
-      color: #111;
-      box-shadow: 0 0 20px #00ffe1;
+    .btn-primary:hover {
+      background-color: #00695c;
     }
-
-    h3 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      text-shadow: 0 0 8px #00ffe1;
-    }
-
-    #erroLogin {
-      color: #ff4e4e;
-      font-weight: bold;
-      text-align: center;
-      margin-top: 1rem;
-    }
-
-    .input-group-text {
-      background-color: transparent;
-      border: 1px solid #00ffe1;
-      color: #00ffe1;
-    }
-
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap');
   </style>
 </head>
-<body>
+<body class="d-flex justify-content-center align-items-center vh-100">
 
-  <div class="card">
-    <h3>Software ARA</h3>
+  <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
+    <h3 class="text-center text-primary mb-4">Software ARA</h3>
     <form id="loginForm" novalidate>
+      <!-- Email -->
       <div class="mb-3">
         <label for="email" class="form-label">E-mail</label>
         <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+          <span class="input-group-text bg-light"><i class="bi bi-envelope-fill"></i></span>
           <input type="email" class="form-control" id="email" placeholder="Digite seu e-mail" required>
         </div>
+        <div class="form-text text-danger d-none" id="erroEmail">Informe um e-mail válido.</div>
       </div>
 
+      <!-- Senha -->
       <div class="mb-3">
         <label for="senha" class="form-label">Senha</label>
         <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+          <span class="input-group-text bg-light"><i class="bi bi-lock-fill"></i></span>
           <input type="password" class="form-control" id="senha" placeholder="Digite sua senha" required>
         </div>
+        <div class="form-text text-danger d-none" id="erroSenha">Informe sua senha.</div>
       </div>
 
+      <!-- Botão Entrar -->
       <div class="d-grid mt-4">
-        <button type="submit" class="btn btn-neon">Entrar</button>
+        <button type="submit" class="btn btn-primary">Entrar</button>
       </div>
 
-      <div id="erroLogin"></div>
+      <!-- Erro de autenticação -->
+      <div id="erroLogin" class="text-danger text-center mt-3 fw-semibold"></div>
     </form>
   </div>
 
@@ -130,22 +81,35 @@
     document.getElementById("loginForm").addEventListener("submit", function (event) {
       event.preventDefault();
 
+      // Limpa erros anteriores
+      document.getElementById("erroLogin").textContent = "";
+      document.getElementById("erroEmail").classList.add("d-none");
+      document.getElementById("erroSenha").classList.add("d-none");
+
       const email = document.getElementById("email").value.trim();
       const senha = document.getElementById("senha").value;
-      const erroDiv = document.getElementById("erroLogin");
-      erroDiv.textContent = "";
 
-      if (!email || !senha) {
-        erroDiv.textContent = "Preencha todos os campos.";
-        return;
+      let valido = true;
+
+      if (!email.includes("@")) {
+        document.getElementById("erroEmail").classList.remove("d-none");
+        valido = false;
       }
 
+      if (senha === "") {
+        document.getElementById("erroSenha").classList.remove("d-none");
+        valido = false;
+      }
+
+      if (!valido) return;
+
+      // Login com Firebase
       firebase.auth().signInWithEmailAndPassword(email, senha)
-        .then(() => {
+        .then((userCredential) => {
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          erroDiv.textContent = traduzErro(error.code);
+          document.getElementById("erroLogin").textContent = "Erro: " + traduzErro(error.code);
         });
     });
 
