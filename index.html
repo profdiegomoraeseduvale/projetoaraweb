@@ -3,42 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login</title>
+  <title>Login - Software ARA</title>
+
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
-</head>
-<body class="bg-light d-flex justify-content-center align-items-center vh-100">
 
-  <div class="card shadow p-4" style="width: 100%; max-width: 400px;">
-    <h3 class="text-center mb-4">Login</h3>
-    <div class="mb-3">
-      <label for="email" class="form-label">E-mail</label>
-      <input type="email" class="form-control" id="email" placeholder="Digite seu e-mail">
-    </div>
-    <div class="mb-3">
-      <label for="senha" class="form-label">Senha</label>
-      <input type="password" class="form-control" id="senha" placeholder="Digite sua senha">
-    </div>
-    <div class="d-grid">
-      <button class="btn btn-primary" onclick="fazerLogin()">Entrar</button>
-    </div>
-    <div id="erro" class="text-danger mt-2 text-center"></div>
+  <style>
+    body {
+      background: linear-gradient(135deg, #00796b, #004d40);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card {
+      border-radius: 16px;
+      background-color: #ffffff;
+    }
+
+    .form-control:focus {
+      border-color: #00796b;
+      box-shadow: 0 0 0 0.2rem rgba(0, 121, 107, 0.25);
+    }
+
+    .btn-primary {
+      background-color: #00796b;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background-color: #00695c;
+    }
+  </style>
+</head>
+<body class="d-flex justify-content-center align-items-center vh-100">
+
+  <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
+    <h3 class="text-center text-primary mb-4">Software ARA</h3>
+    <form id="loginForm" novalidate>
+      <!-- Email -->
+      <div class="mb-3">
+        <label for="email" class="form-label">E-mail</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light"><i class="bi bi-envelope-fill"></i></span>
+          <input type="email" class="form-control" id="email" placeholder="Digite seu e-mail" required>
+        </div>
+        <div class="form-text text-danger d-none" id="erroEmail">Informe um e-mail válido.</div>
+      </div>
+
+      <!-- Senha -->
+      <div class="mb-3">
+        <label for="senha" class="form-label">Senha</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light"><i class="bi bi-lock-fill"></i></span>
+          <input type="password" class="form-control" id="senha" placeholder="Digite sua senha" required>
+        </div>
+        <div class="form-text text-danger d-none" id="erroSenha">Informe sua senha.</div>
+      </div>
+
+      <!-- Botão Entrar -->
+      <div class="d-grid mt-4">
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </div>
+
+      <!-- Erro de autenticação -->
+      <div id="erroLogin" class="text-danger text-center mt-3 fw-semibold"></div>
+    </form>
   </div>
 
   <script>
-    function fazerLogin() {
-      const email = document.getElementById("email").value;
+    document.getElementById("loginForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      // Limpa erros anteriores
+      document.getElementById("erroLogin").textContent = "";
+      document.getElementById("erroEmail").classList.add("d-none");
+      document.getElementById("erroSenha").classList.add("d-none");
+
+      const email = document.getElementById("email").value.trim();
       const senha = document.getElementById("senha").value;
 
+      let valido = true;
+
+      if (!email.includes("@")) {
+        document.getElementById("erroEmail").classList.remove("d-none");
+        valido = false;
+      }
+
+      if (senha === "") {
+        document.getElementById("erroSenha").classList.remove("d-none");
+        valido = false;
+      }
+
+      if (!valido) return;
+
+      // Login com Firebase
       firebase.auth().signInWithEmailAndPassword(email, senha)
         .then((userCredential) => {
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          document.getElementById("erro").textContent = "Erro: " + error.message;
+          document.getElementById("erroLogin").textContent = "Erro: " + traduzErro(error.code);
         });
+    });
+
+    function traduzErro(codigo) {
+      switch (codigo) {
+        case 'auth/user-not-found':
+          return 'Usuário não encontrado.';
+        case 'auth/wrong-password':
+          return 'Senha incorreta.';
+        case 'auth/invalid-email':
+          return 'E-mail inválido.';
+        default:
+          return 'Erro ao fazer login.';
+      }
     }
   </script>
 </body>
